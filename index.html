@@ -1,22 +1,309 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sports TV</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0d10">
+
+<title>Sports TV</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #0b0d10;
+    color: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.container {
+    max-width: 700px;
+    margin: auto;
+    padding: 25px 16px 50px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 34px;
+    font-weight: 800;
+}
+
+.date {
+    color: #9299a4;
+    margin-top: 5px;
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.tabs button {
+    flex: 1;
+    padding: 12px;
+    border: 0;
+    border-radius: 12px;
+    background: #242932;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.tabs button.active {
+    background: white;
+    color: #111318;
+}
+
+.next {
+    background: #171b21;
+    border: 1px solid #2b313a;
+    border-radius: 17px;
+    padding: 17px;
+    margin-bottom: 26px;
+}
+
+.next-label {
+    font-size: 12px;
+    color: #9299a4;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.next-game {
+    font-size: 20px;
+    font-weight: 800;
+    margin-top: 7px;
+}
+
+section {
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-size: 21px;
+    font-weight: 800;
+    margin-bottom: 9px;
+}
+
+.game {
+    background: #15181d;
+    border-radius: 13px;
+    padding: 14px;
+    margin-bottom: 7px;
+
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 10px;
+
+    align-items: center;
+}
+
+.time {
+    font-weight: 800;
+}
+
+.event {
+    font-weight: 700;
+}
+
+.channel {
+    color: #aab1bb;
+    font-size: 13px;
+    text-align: right;
+}
+
+.empty {
+    color: #858d98;
+    font-size: 14px;
+    padding: 5px 2px;
+}
+
+.footer {
+    color: #666e79;
+    font-size: 12px;
+    text-align: center;
+    margin-top: 30px;
+}
+</style>
 </head>
 
-<body style="background:#111;color:white;font-family:Arial;padding:30px">
+<body>
 
-  <h1>🏒 SPORTS TV</h1>
+<div class="container">
 
-  <p>If you can see this, the app is working.</p>
+    <h1>Sports TV</h1>
 
-  <h2>🏒 NHL</h2>
-  <h2>🏒 HOCKEY</h2>
-  <h2>🏈 NFL</h2>
-  <h2>🏈 COLLEGE FOOTBALL</h2>
-  <h2>⚾ MLB POSTSEASON</h2>
-  <h2>🏎️ NASCAR</h2>
+    <div class="date" id="date"></div>
+
+    <div class="tabs">
+
+        <button id="todayBtn" class="active">
+            Today
+        </button>
+
+        <button id="tomorrowBtn">
+            Tomorrow
+        </button>
+
+    </div>
+
+    <div class="next">
+
+        <div class="next-label">
+            NEXT UP
+        </div>
+
+        <div class="next-game" id="nextGame">
+            Checking today's schedule…
+        </div>
+
+    </div>
+
+    <div id="sports"></div>
+
+    <div class="footer">
+        Eastern Time • Scores intentionally hidden
+    </div>
+
+</div>
+
+<script>
+
+const sports = [
+
+    {
+        icon: "🏒",
+        name: "NHL"
+    },
+
+    {
+        icon: "🏒",
+        name: "Hockey",
+        description: "NCAA • World Juniors • IIHF • International"
+    },
+
+    {
+        icon: "🏈",
+        name: "NFL"
+    },
+
+    {
+        icon: "🏈",
+        name: "College Football"
+    },
+
+    {
+        icon: "⚾",
+        name: "MLB Postseason"
+    },
+
+    {
+        icon: "🏎️",
+        name: "NASCAR"
+    }
+
+];
+
+let selectedDay = 0;
+
+function updateDate() {
+
+    const date = new Date();
+
+    date.setDate(
+        date.getDate() + selectedDay
+    );
+
+    document.getElementById("date").textContent =
+        date.toLocaleDateString(
+            "en-US",
+            {
+                weekday: "long",
+                month: "long",
+                day: "numeric"
+            }
+        );
+}
+
+function displaySports() {
+
+    const container =
+        document.getElementById("sports");
+
+    container.innerHTML = "";
+
+    sports.forEach(sport => {
+
+        const section =
+            document.createElement("section");
+
+        section.innerHTML = `
+
+            <div class="section-title">
+                ${sport.icon} ${sport.name}
+            </div>
+
+            <div class="empty">
+                Live schedule connection coming next.
+            </div>
+
+        `;
+
+        container.appendChild(section);
+
+    });
+
+}
+
+function render() {
+
+    updateDate();
+
+    displaySports();
+
+    document.getElementById("nextGame").textContent =
+        "Live schedule connection coming next.";
+
+}
+
+document.getElementById("todayBtn").onclick =
+function() {
+
+    selectedDay = 0;
+
+    this.classList.add("active");
+
+    document
+        .getElementById("tomorrowBtn")
+        .classList.remove("active");
+
+    render();
+
+};
+
+document.getElementById("tomorrowBtn").onclick =
+function() {
+
+    selectedDay = 1;
+
+    this.classList.add("active");
+
+    document
+        .getElementById("todayBtn")
+        .classList.remove("active");
+
+    render();
+
+};
+
+render();
+
+</script>
 
 </body>
 </html>

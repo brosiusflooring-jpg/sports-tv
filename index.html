@@ -173,102 +173,217 @@ section {
 </div>
 
 <script>
+const WORKER_URL =
+    "https://bro-sports-tv.brosiusflooring.workers.dev";
 
 const sports = [
-
     {
         icon: "🏒",
         name: "NHL"
     },
-
     {
         icon: "🏒",
         name: "Hockey",
         description: "NCAA • World Juniors • IIHF • International"
     },
-
     {
         icon: "🏈",
         name: "NFL"
     },
-
     {
         icon: "🏈",
         name: "College Football"
     },
-
     {
         icon: "⚾",
         name: "MLB Postseason"
     },
-
     {
         icon: "🏎️",
         name: "NASCAR"
     }
-
 ];
 
 let selectedDay = 0;
+
+function getDate(offset = 0) {
+
+    const date = new Date();
+
+    date.setDate(date.getDate() + offset);
+
+    return date.toLocaleDateString("en-CA", {
+        timeZone: "America/New_York"
+    });
+}
 
 function updateDate() {
 
     const date = new Date();
 
-    date.setDate(
-        date.getDate() + selectedDay
-    );
+    date.setDate(date.getDate() + selectedDay);
 
     document.getElementById("date").textContent =
-        date.toLocaleDateString(
-            "en-US",
-            {
-                weekday: "long",
-                month: "long",
-                day: "numeric"
-            }
-        );
+        date.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            timeZone: "America/New_York"
+        });
 }
 
-function displaySports() {
+function formatTime(utcTime) {
+
+    if (!utcTime) return "";
+
+    return new Date(utcTime).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "America/New_York"
+    });
+}
+
+function createGame(game) {
+
+    const channels =
+        game.broadcasts &&
+        game.broadcasts.length
+            ? game.broadcasts.join(", ")
+            : "TV info unavailable";
+
+    return `
+        <div class="game">
+
+            <div class="time">
+                ${formatTime(game.timeUTC)}
+            </div>
+
+            <div class="event">
+                ${game.away} @ ${game.home}
+            </div>
+
+            <div class="channel">
+                ${channels}
+            </div>
+
+        </div>
+    `;
+}
+
+async function loadNHL() {
 
     const container =
         document.getElementById("sports");
 
     container.innerHTML = "";
 
-    sports.forEach(sport => {
+    const section =
+        document.createElement("section");
+
+    section.innerHTML = `
+        <div class="section-title">
+            🏒 NHL
+        </div>
+
+        <div class="empty">
+            Loading NHL schedule…
+        </div>
+    `;
+
+    container.appendChild(section);
+
+    try {
+
+        const date = getDate(selectedDay);
+
+        const response =
+            await fetch(
+                `${WORKER_URL}?date=${date}`
+            );
+
+        const data =
+            await response.json();
+
+        if (!data.games || data.games.length === 0) {
+
+            section.innerHTML = `
+                <div class="section-title">
+                    🏒 NHL
+                </div>
+
+                <div class="empty">
+                    No NHL games scheduled.
+                </div>
+            `;
+
+            document.getElementById("nextGame").textContent =
+                "No NHL games scheduled.";
+
+            return;
+        }
+
+        section.innerHTML = `
+            <div class="section-title">
+                🏒 NHL
+            </div>
+
+            ${data.games.map(createGame).join("")}
+        `;
+
+        document.getElementById("nextGame").textContent =
+            `${data.games[0].away} @ ${data.games[0].home} • ${formatTime(data.games[0].timeUTC)}`;
+
+    } catch (error) {
+
+        section.innerHTML = `
+            <div class="section-title">
+                🏒 NHL
+            </div>
+
+            <div class="empty">
+                Unable to load NHL schedule.
+            </div>
+        `;
+
+        document.getElementById("nextGame").textContent =
+            "Schedule temporarily unavailable.";
+    }
+
+    addOtherSports();
+}
+
+function addOtherSports() {
+
+    const container =
+        document.getElementById("sports");
+
+    const otherSports = sports.slice(1);
+
+    otherSports.forEach(sport => {
 
         const section =
             document.createElement("section");
 
         section.innerHTML = `
-
             <div class="section-title">
                 ${sport.icon} ${sport.name}
             </div>
 
             <div class="empty">
-                Live schedule connection coming next.
+                Live schedule coming soon.
             </div>
-
         `;
 
         container.appendChild(section);
 
     });
-
 }
 
 function render() {
 
     updateDate();
 
-    displaySports();
-
-    document.getElementById("nextGame").textContent =
-        "Live schedule connection coming next.";
-
+    loadNHL();
 }
 
 document.getElementById("todayBtn").onclick =
@@ -283,7 +398,6 @@ function() {
         .classList.remove("active");
 
     render();
-
 };
 
 document.getElementById("tomorrowBtn").onclick =
@@ -298,11 +412,9 @@ function() {
         .classList.remove("active");
 
     render();
-
 };
 
 render();
-
 </script>
 
 </body>

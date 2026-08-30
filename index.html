@@ -15,14 +15,14 @@
 body {
     margin: 0;
     background: #0b0d10;
-    color: #ffffff;
+    color: white;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
 .container {
     max-width: 700px;
     margin: auto;
-    padding: 25px 16px 50px;
+    padding: 24px 16px 50px;
 }
 
 h1 {
@@ -95,11 +95,9 @@ section {
     border-radius: 13px;
     padding: 14px;
     margin-bottom: 7px;
-
     display: grid;
     grid-template-columns: 70px 1fr auto;
     gap: 10px;
-
     align-items: center;
 }
 
@@ -136,77 +134,47 @@ section {
 
 <div class="container">
 
-    <h1>Sports TV</h1>
+<h1>Sports TV</h1>
 
-    <div class="date" id="date"></div>
+<div class="date" id="date"></div>
 
-    <div class="tabs">
+<div class="tabs">
+    <button id="todayBtn" class="active">Today</button>
+    <button id="tomorrowBtn">Tomorrow</button>
+</div>
 
-        <button id="todayBtn" class="active">
-            Today
-        </button>
-
-        <button id="tomorrowBtn">
-            Tomorrow
-        </button>
-
+<div class="next">
+    <div class="next-label">NEXT UP</div>
+    <div class="next-game" id="nextGame">
+        Loading…
     </div>
+</div>
 
-    <div class="next">
+<div id="sports"></div>
 
-        <div class="next-label">
-            NEXT UP
-        </div>
-
-        <div class="next-game" id="nextGame">
-            Checking today's schedule…
-        </div>
-
-    </div>
-
-    <div id="sports"></div>
-
-    <div class="footer">
-        Eastern Time • Scores intentionally hidden
-    </div>
+<div class="footer">
+    Eastern Time • Scores intentionally hidden
+</div>
 
 </div>
 
 <script>
-const WORKER_URL =
-    "https://bro-sports-tv.brosiusflooring.workers.dev";
 
-const sports = [
-    {
-        icon: "🏒",
-        name: "NHL"
-    },
-    {
-        icon: "🏒",
-        name: "Hockey",
-        description: "NCAA • World Juniors • IIHF • International"
-    },
-    {
-        icon: "🏈",
-        name: "NFL"
-    },
-    {
-        icon: "🏈",
-        name: "College Football"
-    },
-    {
-        icon: "⚾",
-        name: "MLB Postseason"
-    },
-    {
-        icon: "🏎️",
-        name: "NASCAR"
-    }
+const WORKER_URL =
+"https://bro-sports-tv.brosiusflooring.workers.dev";
+
+const categories = [
+    ["nhl", "🏒 NHL"],
+    ["hockey", "🏒 Hockey"],
+    ["nfl", "🏈 NFL"],
+    ["collegeFootball", "🏈 College Football"],
+    ["mlbPostseason", "⚾ MLB Postseason"],
+    ["nascar", "🏎️ NASCAR"]
 ];
 
 let selectedDay = 0;
 
-function getDate(offset = 0) {
+function getDate(offset) {
 
     const date = new Date();
 
@@ -232,158 +200,133 @@ function updateDate() {
         });
 }
 
-function formatTime(utcTime) {
-
-    if (!utcTime) return "";
-
-    return new Date(utcTime).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: "America/New_York"
-    });
-}
-
-function createGame(game) {
-
-    const channels =
-        game.broadcasts &&
-        game.broadcasts.length
-            ? game.broadcasts.join(", ")
-            : "TV info unavailable";
+function showGame(game) {
 
     return `
         <div class="game">
 
             <div class="time">
-                ${formatTime(game.timeUTC)}
+                ${game.time || ""}
             </div>
 
             <div class="event">
-                ${game.away} @ ${game.home}
+                ${game.event || ""}
             </div>
 
             <div class="channel">
-                ${channels}
+                ${game.channel || "TV info unavailable"}
             </div>
 
         </div>
     `;
 }
 
-async function loadNHL() {
+function renderCategory(title, games) {
+
+    if (!games || games.length === 0) {
+
+        return `
+            <section>
+
+                <div class="section-title">
+                    ${title}
+                </div>
+
+                <div class="empty">
+                    Nothing scheduled.
+                </div>
+
+            </section>
+        `;
+    }
+
+    return `
+        <section>
+
+            <div class="section-title">
+                ${title}
+            </div>
+
+            ${games.map(showGame).join("")}
+
+        </section>
+    `;
+}
+
+async function loadSports() {
 
     const container =
         document.getElementById("sports");
 
-    container.innerHTML = "";
+    const next =
+        document.getElementById("nextGame");
 
-    const section =
-        document.createElement("section");
+    container.innerHTML =
+        `<div class="empty">Loading today's sports…</div>`;
 
-    section.innerHTML = `
-        <div class="section-title">
-            🏒 NHL
-        </div>
-
-        <div class="empty">
-            Loading NHL schedule…
-        </div>
-    `;
-
-    container.appendChild(section);
+    next.textContent =
+        "Checking the schedule…";
 
     try {
 
-        const date = getDate(selectedDay);
+        const date =
+            getDate(selectedDay);
 
         const response =
             await fetch(
                 `${WORKER_URL}?date=${date}`
             );
 
+        if (!response.ok) {
+            throw new Error("Worker unavailable");
+        }
+
         const data =
             await response.json();
 
-        if (!data.games || data.games.length === 0) {
-
-            section.innerHTML = `
-                <div class="section-title">
-                    🏒 NHL
-                </div>
-
-                <div class="empty">
-                    No NHL games scheduled.
-                </div>
-            `;
-
-            document.getElementById("nextGame").textContent =
-                "No NHL games scheduled.";
-
-            return;
+        if (data.status !== "ok") {
+            throw new Error("Schedule unavailable");
         }
 
-        section.innerHTML = `
-            <div class="section-title">
-                🏒 NHL
-            </div>
+        let html = "";
 
-            ${data.games.map(createGame).join("")}
-        `;
+        categories.forEach(category => {
 
-        document.getElementById("nextGame").textContent =
-            `${data.games[0].away} @ ${data.games[0].home} • ${formatTime(data.games[0].timeUTC)}`;
+            const key = category[0];
+            const title = category[1];
+
+            html += renderCategory(
+                title,
+                data.sports[key]
+            );
+
+        });
+
+        container.innerHTML = html;
+
+        if (data.nextUp) {
+
+            next.textContent =
+                `${data.nextUp.event} • ${data.nextUp.time}`;
+
+        } else {
+
+            next.textContent =
+                "Nothing scheduled.";
+
+        }
 
     } catch (error) {
 
-        section.innerHTML = `
-            <div class="section-title">
-                🏒 NHL
-            </div>
-
+        container.innerHTML = `
             <div class="empty">
-                Unable to load NHL schedule.
+                Unable to load the sports schedule.
             </div>
         `;
 
-        document.getElementById("nextGame").textContent =
+        next.textContent =
             "Schedule temporarily unavailable.";
     }
-
-    addOtherSports();
-}
-
-function addOtherSports() {
-
-    const container =
-        document.getElementById("sports");
-
-    const otherSports = sports.slice(1);
-
-    otherSports.forEach(sport => {
-
-        const section =
-            document.createElement("section");
-
-        section.innerHTML = `
-            <div class="section-title">
-                ${sport.icon} ${sport.name}
-            </div>
-
-            <div class="empty">
-                Live schedule coming soon.
-            </div>
-        `;
-
-        container.appendChild(section);
-
-    });
-}
-
-function render() {
-
-    updateDate();
-
-    loadNHL();
 }
 
 document.getElementById("todayBtn").onclick =
@@ -397,7 +340,8 @@ function() {
         .getElementById("tomorrowBtn")
         .classList.remove("active");
 
-    render();
+    updateDate();
+    loadSports();
 };
 
 document.getElementById("tomorrowBtn").onclick =
@@ -411,10 +355,13 @@ function() {
         .getElementById("todayBtn")
         .classList.remove("active");
 
-    render();
+    updateDate();
+    loadSports();
 };
 
-render();
+updateDate();
+loadSports();
+
 </script>
 
 </body>
